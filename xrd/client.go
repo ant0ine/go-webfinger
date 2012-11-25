@@ -8,18 +8,26 @@ import (
 
 // XRD spec: http://docs.oasis-open.org/xri/xrd/v1.0/xrd-1.0.html
 
-type Link struct {
-	Rel      string `xml:"rel,attr"`
-	Template string `xml:"template,attr"`
-	Type     string `xml:"type,attr"`
-	Href     string `xml:"href,attr"`
+type XRD struct {
+	Subject  string
+	Expires  string
+	Alias    []string
+	Link     []Link
+	Property []Property
 }
 
-type XRD struct {
-	Subject string
-	Alias   string
-	Expires string
-	Link    []Link
+type Property struct {
+	Type  string `xml:"type,attr"`
+	Value string `xml:",chardata"`
+}
+
+type Link struct {
+	Rel      string `xml:"rel,attr"`
+	Type     string `xml:"type,attr"`
+	Href     string `xml:"href,attr"`
+	Title    []string
+	Property []Property
+	Template string `xml:"template,attr"`
 }
 
 func GetXRD(url string) (*XRD, error) {
@@ -39,12 +47,20 @@ func GetXRD(url string) (*XRD, error) {
 		return nil, err
 	}
 
-	parsed := XRD{}
-	err = xml.Unmarshal(content, &parsed)
+	parsed, err := ParseXRD(content)
 	if err != nil {
 		return nil, err
 	}
 
+	return parsed, nil
+}
+
+func ParseXRD(blob []byte) (*XRD, error) {
+	parsed := XRD{}
+	err := xml.Unmarshal(blob, &parsed)
+	if err != nil {
+		return nil, err
+	}
 	return &parsed, nil
 }
 
@@ -63,4 +79,9 @@ func (self *XRD) LrddTemplate() string {
 		return ""
 	}
 	return link.Template
+}
+
+// Convert the XRD to JRD
+func ToJRD() {
+
 }
