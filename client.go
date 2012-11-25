@@ -51,10 +51,13 @@ func HostJRDURLs(domain string) []string {
 	return []string{
 		// last spec: http://tools.ietf.org/html/draft-ietf-appsawg-webfinger-04
 		"https://" + domain + "/.well-known/webfinger",
+		"http://" + domain + "/.well-known/webfinger",
 		// first JRD implementation
 		"https://" + domain + "/.well-known/host-meta.json",
+		"http://" + domain + "/.well-known/host-meta.json",
 		// orignal spec: https://code.google.com/p/webfinger/wiki/WebFingerProtocol
 		"https://" + domain + "/.well-known/host-meta",
+		"http://" + domain + "/.well-known/host-meta",
 	}
 }
 
@@ -62,11 +65,10 @@ func HostJRDURLs(domain string) []string {
 // [Compat Note] If the payload is in XRD, this method parses it
 // and converts it to JRD.
 func GetJRD(url string) (*jrd.JRD, error) {
-	// TODO try http if https fails
 	// TODO verify signature if not https
 	// TODO extract http cache info
 
-	// Get follow up to 10 redirects
+	// Get follows up to 10 redirects
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -90,7 +92,9 @@ func GetJRD(url string) (*jrd.JRD, error) {
 		}
 		return parsed, nil
 
-	} else if strings.Contains(ct, "application/xrd+xml") {
+	} else if strings.Contains(ct, "application/xrd+xml") ||
+		strings.Contains(ct, "application/xml") ||
+		strings.Contains(ct, "text/xml") {
 		parsed, err := xrd.ParseXRD(content)
 		if err != nil {
 			return nil, err
