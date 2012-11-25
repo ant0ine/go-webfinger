@@ -50,11 +50,3 @@ func (self *XRD) GetLinkByRel(rel string) *Link {
 	}
 	return nil
 }
-
-func (self *XRD) LrddTemplate() string {
-	link := self.GetLinkByRel("lrdd")
-	if link == nil {
-		return ""
-	}
-	return link.Template
-}

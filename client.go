@@ -12,6 +12,7 @@ package webfinger
 import (
 	"errors"
 	"fmt"
+	"github.com/ant0ine/go-webfinger/jrd"
 	"github.com/ant0ine/go-webfinger/xrd"
 	"io/ioutil"
 	"log"
@@ -44,22 +45,35 @@ func (self *EmailAddress) AsURI() string {
 	return fmt.Sprintf("acct:%s@%s", self.Local, self.Domain)
 }
 
-// Build the well known host meta URL from the domain
-func HostXRDURL(domain string) string { // XXX s/XRD/Meta/ ?
-	// TODO return also the non-https URL
-	// TODO return the JRD URL ?
-	return "https://" + domain + "/.well-known/host-meta"
+// Build a serie well known host JRD URLs from the domain
+// [Compat Note] This includes URLs from previous versions of the spec.
+func HostJRDURLs(domain string) []string {
+	return []string{
+		// last spec: http://tools.ietf.org/html/draft-ietf-appsawg-webfinger-04
+		"https://" + domain + "/.well-known/webfinger",
+		// first JRD implementation
+		"https://" + domain + "/.well-known/host-meta.json",
+		// orignal spec: https://code.google.com/p/webfinger/wiki/WebFingerProtocol
+		"https://" + domain + "/.well-known/host-meta",
+	}
 }
 
-func GetXRD(url string) (*xrd.XRD, error) {
-	// TODO follow redirect
+// Given an URL, get and parse the JRD.
+// [Compat Note] If the payload is in XRD, this method parses it
+// and converts it to JRD.
+func GetJRD(url string) (*jrd.JRD, error) {
 	// TODO try http if https fails
 	// TODO verify signature if not https
 	// TODO extract http cache info
 
+	// Get follow up to 10 redirects
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, err
+	}
+
+	if !(200 <= res.StatusCode && res.StatusCode < 300) {
+		return nil, errors.New(res.Status)
 	}
 
 	content, err := ioutil.ReadAll(res.Body)
@@ -68,38 +82,60 @@ func GetXRD(url string) (*xrd.XRD, error) {
 		return nil, err
 	}
 
-	parsed, err := xrd.ParseXRD(content)
-	if err != nil {
-		return nil, err
+	ct := strings.ToLower(res.Header.Get("content-type"))
+	if ct == "application/json" {
+		parsed, err := jrd.ParseJRD(content)
+		if err != nil {
+			return nil, err
+		}
+		return parsed, nil
+
+	} else if ct == "application/xrd+xml" {
+		parsed, err := xrd.ParseXRD(content)
+		if err != nil {
+			return nil, err
+		}
+		return parsed.ConvertToJRD(), nil
 	}
 
-	return parsed, nil
+	return nil, errors.New(fmt.Sprintf("invalid content-type: %s", ct))
 }
 
-// Given a domain, this method gets the host meta XRD data,
-// and returns the LRDD user XRD template URL.
-func GetUserXRDTemplateURL(domain string) (string, error) {
+// Try to call GetJRD on each url until a successful response.
+func FindJRD(urls []string) (*jrd.JRD, error) {
+	for _, url := range urls {
+		log.Printf("Fetching Host JRD URL: %s", url)
+		obj, err := GetJRD(url)
+		if err == nil {
+			return obj, nil
+		}
+		log.Print(err)
+	}
+	return nil, errors.New("JRD not found")
+}
+
+// Given a domain, this method gets the host meta JRD data,
+// and returns the LRDD user JRD template URL.
+func GetUserJRDTemplateURL(domain string) (string, error) {
 	// TODO implement heavy HTTP cache around this
 
-	xrd_url := HostXRDURL(domain)
+	urls := HostJRDURLs(domain)
 
-	log.Printf("Fetching Host XRD URL: %s", xrd_url)
-
-	host_xrd, err := GetXRD(xrd_url)
+	host_jrd, err := FindJRD(urls)
 	if err != nil {
 		return "", err
 	}
 
-	template := host_xrd.LrddTemplate()
+	template := host_jrd.LrddTemplate()
 	if template == "" {
-		return "", errors.New("cannot find the template in the XRD data")
+		return "", errors.New("cannot find the template in the JRD data")
 	}
 
 	return template, nil
 }
 
-// Try to discover the user XRD data from the email
-func GetUserXRD(email string) (*xrd.XRD, error) {
+// Try to discover the user JRD data from the email
+func GetUserJRD(email string) (*jrd.JRD, error) {
 	// TODO support the rel query string parameter
 
 	address, err := MakeEmailAddress(email)
@@ -107,27 +143,27 @@ func GetUserXRD(email string) (*xrd.XRD, error) {
 		return nil, err
 	}
 
-	log.Printf("Fetching WebFinger XRD info for: %s", address.AsURI())
+	log.Printf("Fetching WebFinger JRD info for: %s", address.AsURI())
 
-	template, err := GetUserXRDTemplateURL(address.Domain)
+	template, err := GetUserJRDTemplateURL(address.Domain)
 	if err != nil {
 		return nil, err
 	}
 
 	log.Printf("template: %s", template)
 
-	xrd_url := strings.Replace(template, "{uri}", url.QueryEscape(address.AsURI()), 1)
+	jrd_url := strings.Replace(template, "{uri}", url.QueryEscape(address.AsURI()), 1)
 
-	log.Printf("User XRD URL: %s", xrd_url)
+	log.Printf("User JRD URL: %s", jrd_url)
 
-	user_xrd, err := GetXRD(xrd_url)
+	user_jrd, err := GetJRD(jrd_url)
 	if err != nil {
 		return nil, err
 	}
 
-	if user_xrd.Subject != address.AsURI() {
-		return nil, errors.New("XRD Subject does not match the email")
+	if user_jrd.Subject != address.AsURI() {
+		return nil, errors.New("JRD Subject does not match the email")
 	}
 
-	return user_xrd, nil
+	return user_jrd, nil
 }

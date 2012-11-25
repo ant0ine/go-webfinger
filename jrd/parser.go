@@ -38,3 +38,11 @@ func (self *JRD) GetLinkByRel(rel string) *Link {
 	}
 	return nil
 }
+
+func (self *JRD) LrddTemplate() string {
+	link := self.GetLinkByRel("lrdd")
+	if link == nil {
+		return ""
+	}
+	return link.Template
+}

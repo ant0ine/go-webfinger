@@ -8,10 +8,10 @@ import (
 
 func main() {
 	email := os.Args[1]
-	user_xrd, err := webfinger.GetUserXRD(email)
+	user_jrd, err := webfinger.GetUserJRD(email)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	fmt.Printf("User XRD: %+v", user_xrd)
+	fmt.Printf("User JRD: %+v", user_jrd)
 }
