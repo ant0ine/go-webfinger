@@ -21,11 +21,16 @@ type Property struct {
 	Value string `xml:",chardata"`
 }
 
+type Title struct {
+	Lang  string `xml:"lang,attr"`
+	Value string `xml:",chardata"`
+}
+
 type Link struct {
 	Rel      string `xml:"rel,attr"`
 	Type     string `xml:"type,attr"`
 	Href     string `xml:"href,attr"`
-	Title    []string
+	Title    []Title
 	Property []Property
 	Template string `xml:"template,attr"`
 }
@@ -81,7 +86,3 @@ func (self *XRD) LrddTemplate() string {
 	return link.Template
 }
 
-// Convert the XRD to JRD
-func ToJRD() {
-
-}

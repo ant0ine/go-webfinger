@@ -55,10 +55,31 @@ func TestParseXRD(t *testing.T) {
 	if obj.GetLinkByRel("copyright").Template != "http://example.com/copyright?id={uri}" {
 		t.Error()
 	}
-	if obj.GetLinkByRel("author").Title[1] != "Author Information" {
+	if obj.GetLinkByRel("author").Title[1].Value != "Author Information" {
 		t.Error()
 	}
 	if obj.GetLinkByRel("author").Property[0].Value != "editor" {
+		t.Error()
+	}
+
+        jrd_obj := obj.ConvertToJRD()
+
+        if jrd_obj.Subject != "http://blog.example.com/article/id/314" {
+		t.Error()
+        }
+	if jrd_obj.Properties["http://blgx.example.net/ns/version"] != "1.3" {
+		t.Error()
+	}
+        if jrd_obj.GetLinkByRel("copyright") == nil {
+		t.Error()
+        }
+        if jrd_obj.GetLinkByRel("copyright").Template != "http://example.com/copyright?id={uri}" {
+		t.Error()
+        }
+	if jrd_obj.GetLinkByRel("author").Titles["default"] != "About the Author" {
+		t.Error()
+	}
+	if jrd_obj.GetLinkByRel("author").Properties["http://example.com/role"] != "editor" {
 		t.Error()
 	}
 }
