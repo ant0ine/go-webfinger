@@ -1,2 +1,48 @@
+PACKAGE
 
+package webfinger
+    import "github.com/ant0ine/go-webfinger"
+
+    Simple Client Implementation of WebFinger
+
+    This is a work in progress, The WebFinger spec is changing every day
+    anyway :)
+
+    Some links to follow:
+    https://code.google.com/p/webfinger/wiki/WebFingerProtocol
+    https://groups.google.com/forum/#!forum/webfinger
+    https://groups.google.com/d/topic/webfinger/zw-pCRGyuSo/discussion
+    http://tools.ietf.org/html/draft-ietf-appsawg-webfinger-04
+
+FUNCTIONS
+
+func GetUserXRD(email string) (*xrd.XRD, error)
+    Try to discover the user XRD data from the email
+
+func GetUserXRDTemplateURL(domain string) (string, error)
+    Given a domain, this method gets the host meta XRD data, and returns the
+    LRDD user XRD template URL.
+
+func HostXRDURL(domain string) string
+    Build the well known host meta URL from the domain
+
+
+TYPES
+
+type EmailAddress struct {
+    Local  string
+    Domain string
+}
+
+func MakeEmailAddress(email string) (*EmailAddress, error)
+    Parse the email string and return an *EmailAddress
+
+func (self *EmailAddress) AsURI() string
+    Return the email address as an URI (ie: acct:user@domain)
+
+
+SUBDIRECTORIES
+
+	example
+	xrd
 
