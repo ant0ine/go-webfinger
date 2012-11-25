@@ -1,3 +1,6 @@
+// Simple JRD Parser
+//
+// JRD spec: http://tools.ietf.org/html/rfc6415#appendix-A
 package jrd
 
 import (
@@ -21,6 +24,7 @@ type Link struct {
 	Template   string
 }
 
+// Parse the JRD using json.Unmarshal
 func ParseJRD(blob []byte) (*JRD, error) {
 	jrd := JRD{}
 	err := json.Unmarshal(blob, &jrd)
@@ -30,6 +34,7 @@ func ParseJRD(blob []byte) (*JRD, error) {
 	return &jrd, nil
 }
 
+// Return the first *Link with rel=rel
 func (self *JRD) GetLinkByRel(rel string) *Link {
 	for _, link := range self.Links {
 		if link.Rel == rel {

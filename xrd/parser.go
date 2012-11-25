@@ -1,10 +1,11 @@
+// Simple XRD parser
+//
+// XRD spec: http://docs.oasis-open.org/xri/xrd/v1.0/xrd-1.0.html
 package xrd
 
 import (
 	"encoding/xml"
 )
-
-// XRD spec: http://docs.oasis-open.org/xri/xrd/v1.0/xrd-1.0.html
 
 type XRD struct {
 	Subject  string
@@ -33,6 +34,7 @@ type Link struct {
 	Template string `xml:"template,attr"`
 }
 
+// Parse the XRD using xml.Unmarshal
 func ParseXRD(blob []byte) (*XRD, error) {
 	parsed := XRD{}
 	err := xml.Unmarshal(blob, &parsed)
@@ -42,6 +44,7 @@ func ParseXRD(blob []byte) (*XRD, error) {
 	return &parsed, nil
 }
 
+// Return the first *Link with rel=rel
 func (self *XRD) GetLinkByRel(rel string) *Link {
 	for _, link := range self.Link {
 		if link.Rel == rel {
