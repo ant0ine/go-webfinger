@@ -48,17 +48,26 @@ func TestParseJRD(t *testing.T) {
               ]
             }
         `
-        jrd, err := ParseJRD([]byte(blob))
+        obj, err := ParseJRD([]byte(blob))
         if err != nil {
 		t.Fatal(err)
         }
-        if jrd.Subject != "http://blog.example.com/article/id/314" {
+        if obj.Subject != "http://blog.example.com/article/id/314" {
 		t.Error()
         }
-        if jrd.GetLinkByRel("copyright") == nil {
+	if obj.Properties["http://blgx.example.net/ns/version"] != "1.3" {
+		t.Error()
+	}
+        if obj.GetLinkByRel("copyright") == nil {
 		t.Error()
         }
-        if jrd.GetLinkByRel("copyright").Template != "http://example.com/copyright?id={uri}" {
+        if obj.GetLinkByRel("copyright").Template != "http://example.com/copyright?id={uri}" {
 		t.Error()
         }
+	if obj.GetLinkByRel("author").Titles["default"] != "About the Author" {
+		t.Error()
+	}
+	if obj.GetLinkByRel("author").Properties["http://example.com/role"] != "editor" {
+		t.Error()
+	}
 }
