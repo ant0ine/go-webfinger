@@ -1,12 +1,23 @@
 // Simple Client Implementation of WebFinger
 //
-// This is a work in progress, The WebFinger spec is changing every day anyway :)
+// (This is a work in progress, the API is not frozen)
 //
-// Some links to follow:
-// https://code.google.com/p/webfinger/wiki/WebFingerProtocol
-// https://groups.google.com/forum/#!forum/webfinger
-// https://groups.google.com/d/topic/webfinger/zw-pCRGyuSo/discussion
+// This implementation tries to follow the last spec:
 // http://tools.ietf.org/html/draft-ietf-appsawg-webfinger-04
+// And also tries to provide backwark compatibility with the original spec:
+// https://code.google.com/p/webfinger/wiki/WebFingerProtocol
+//
+// Example:
+//      import (
+//          "fmt"
+//          "github.com/ant0ine/go-webfinger"
+//      )
+//
+// 	jrd, err := webfinger.GetUserJRD("user@host")
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	fmt.Printf("User JRD: %+v", jrd)
 package webfinger
 
 import (
@@ -21,7 +32,7 @@ import (
 	"strings"
 )
 
-type EmailAddress struct { // XXX rename Id or WebFingerId ? it may not be an email address
+type EmailAddress struct { // TODO rename Id or WebFingerId ? it may not be an email address
 	Local  string
 	Domain string
 }

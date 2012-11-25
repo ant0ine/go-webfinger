@@ -5,26 +5,44 @@ package webfinger
 
     Simple Client Implementation of WebFinger
 
-    This is a work in progress, The WebFinger spec is changing every day
-    anyway :)
+    (This is a work in progress, the API is not frozen)
 
-    Some links to follow:
+    This implementation tries to follow the last spec:
+    http://tools.ietf.org/html/draft-ietf-appsawg-webfinger-04 And also
+    tries to provide backwark compatibility with the original spec:
     https://code.google.com/p/webfinger/wiki/WebFingerProtocol
-    https://groups.google.com/forum/#!forum/webfinger
-    https://groups.google.com/d/topic/webfinger/zw-pCRGyuSo/discussion
-    http://tools.ietf.org/html/draft-ietf-appsawg-webfinger-04
+
+    Example:
+
+	     import (
+	         "fmt"
+	         "github.com/ant0ine/go-webfinger"
+	     )
+		jrd, err := webfinger.GetUserJRD("user@host")
+		if err != nil {
+			panic(err)
+		}
+		fmt.Printf("User JRD: %+v", jrd)
 
 FUNCTIONS
 
-func GetUserXRD(email string) (*xrd.XRD, error)
-    Try to discover the user XRD data from the email
+func FindJRD(urls []string) (*jrd.JRD, error)
+    Try to call GetJRD on each url until a successful response.
 
-func GetUserXRDTemplateURL(domain string) (string, error)
-    Given a domain, this method gets the host meta XRD data, and returns the
-    LRDD user XRD template URL.
+func GetJRD(url string) (*jrd.JRD, error)
+    Given an URL, get and parse the JRD. [Compat Note] If the payload is in
+    XRD, this method parses it and converts it to JRD.
 
-func HostXRDURL(domain string) string
-    Build the well known host meta URL from the domain
+func GetUserJRD(email string) (*jrd.JRD, error)
+    Try to discover the user JRD data from the email
+
+func GetUserJRDTemplateURL(domain string) (string, error)
+    Given a domain, this method gets the host meta JRD data, and returns the
+    LRDD user JRD template URL.
+
+func HostJRDURLs(domain string) []string
+    Build a serie well known host JRD URLs from the domain [Compat Note]
+    This includes URLs from previous versions of the spec.
 
 
 TYPES
@@ -44,5 +62,6 @@ func (self *EmailAddress) AsURI() string
 SUBDIRECTORIES
 
 	example
+	jrd
 	xrd
 
