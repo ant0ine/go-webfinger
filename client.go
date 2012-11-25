@@ -83,14 +83,14 @@ func GetJRD(url string) (*jrd.JRD, error) {
 	}
 
 	ct := strings.ToLower(res.Header.Get("content-type"))
-	if ct == "application/json" {
+	if strings.Contains(ct, "application/json") {
 		parsed, err := jrd.ParseJRD(content)
 		if err != nil {
 			return nil, err
 		}
 		return parsed, nil
 
-	} else if ct == "application/xrd+xml" {
+	} else if strings.Contains(ct, "application/xrd+xml") {
 		parsed, err := xrd.ParseXRD(content)
 		if err != nil {
 			return nil, err
