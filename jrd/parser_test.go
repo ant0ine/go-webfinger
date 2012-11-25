@@ -1,4 +1,4 @@
-package webfinger
+package jrd
 
 import (
 	"testing"
