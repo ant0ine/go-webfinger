@@ -13,11 +13,15 @@
 //          "github.com/ant0ine/go-webfinger"
 //      )
 //
-// 	jrd, err := webfinger.GetUserJRD("user@host")
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	fmt.Printf("User JRD: %+v", jrd)
+//      resource, err := webfinger.MakeResource("user@host")
+//	if err != nil {
+//		panic(err)
+//	}
+//	jrd, err := resource.GetJRD()
+//	if err != nil {
+//		panic(err)
+//	}
+//	fmt.Printf("JRD: %+v", ujrd)
 package webfinger
 
 import (
@@ -32,50 +36,68 @@ import (
 	"strings"
 )
 
-type EmailAddress struct { // TODO rename Id or WebFingerId ? it may not be an email address
+// WebFinger Resource
+type Resource struct {
 	Local  string
 	Domain string
 }
 
-// Parse the email string and return an *EmailAddress
-func MakeEmailAddress(email string) (*EmailAddress, error) {
+// Parse the email string and return a *Resource
+func MakeResource(email string) (*Resource, error) {
 	// TODO validate address, see http://www.ietf.org/rfc/rfc2822.txt
 	// TODO accept an email address URI
 	parts := strings.SplitN(email, "@", 2)
 	if len(parts) < 2 {
 		return nil, errors.New("not a valid email")
 	}
-	return &EmailAddress{
+	return &Resource{
 		Local:  parts[0],
 		Domain: parts[1],
 	}, nil
 }
 
-// Return the email address as an URI (ie: acct:user@domain)
-func (self *EmailAddress) AsURI() string {
+// Return the resource as an URI (ie: acct:user@domain)
+func (self *Resource) AsURI() string {
 	return fmt.Sprintf("acct:%s@%s", self.Local, self.Domain)
 }
 
-// Build a serie well known host JRD URLs from the domain
-// [Compat Note] This includes URLs from previous versions of the spec.
-func HostJRDURLs(domain string) []string {
+// Generate the WebFinger URLs that can point to the resource JRD
+func (self *Resource) JRDURLs() []string {
+	// TODO support the rel query string parameter
+	uri := url.QueryEscape(self.AsURI())
 	return []string{
-		// last spec: http://tools.ietf.org/html/draft-ietf-appsawg-webfinger-04
-		"https://" + domain + "/.well-known/webfinger",
-		"http://" + domain + "/.well-known/webfinger",
-		// first JRD implementation
-		"https://" + domain + "/.well-known/host-meta.json",
-		"http://" + domain + "/.well-known/host-meta.json",
-		// orignal spec: https://code.google.com/p/webfinger/wiki/WebFingerProtocol
-		"https://" + domain + "/.well-known/host-meta",
-		"http://" + domain + "/.well-known/host-meta",
+		"https://" + self.Domain + "/.well-known/webfinger?resource=" + uri,
+		"http://" + self.Domain + "/.well-known/webfinger?resource=" + uri,
 	}
+}
+
+// Try to get the JRD data for this resource
+func (self *Resource) GetJRD() (*jrd.JRD, error) {
+	// TODO support the rel query string parameter
+
+	log.Printf("Trying to get WebFinger JRD data for: %s", self.AsURI())
+
+	resource_jrd, err := FindJRD(self.JRDURLs())
+	if err != nil {
+		// Fallback to the original WebFinger spec
+		log.Print(err)
+		resource_jrd, err = self.GetJRDCompat()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if resource_jrd.Subject != self.AsURI() {
+		return nil, errors.New(fmt.Sprintf("JRD Subject does not match the resource: %s", self.AsURI()))
+	}
+
+	return resource_jrd, nil
 }
 
 // Given an URL, get and parse the JRD.
 // [Compat Note] If the payload is in XRD, this method parses it
 // and converts it to JRD.
-func GetJRD(url string) (*jrd.JRD, error) {
+func FetchJRD(url string) (*jrd.JRD, error) {
 	// TODO verify signature if not https
 	// TODO extract http cache info
 
@@ -116,69 +138,15 @@ func GetJRD(url string) (*jrd.JRD, error) {
 	return nil, errors.New(fmt.Sprintf("invalid content-type: %s", ct))
 }
 
-// Try to call GetJRD on each url until a successful response.
+// Try to call FetchJRD on each url until a successful response.
 func FindJRD(urls []string) (*jrd.JRD, error) {
 	for _, url := range urls {
 		log.Printf("Fetching Host JRD URL: %s", url)
-		obj, err := GetJRD(url)
+		obj, err := FetchJRD(url)
 		if err == nil {
 			return obj, nil
 		}
 		log.Print(err)
 	}
 	return nil, errors.New("JRD not found")
-}
-
-// Given a domain, this method gets the host meta JRD data,
-// and returns the LRDD user JRD template URL.
-func GetUserJRDTemplateURL(domain string) (string, error) {
-	// TODO implement heavy HTTP cache around this
-
-	urls := HostJRDURLs(domain)
-
-	host_jrd, err := FindJRD(urls)
-	if err != nil {
-		return "", err
-	}
-
-	template := host_jrd.LrddTemplate()
-	if template == "" {
-		return "", errors.New("cannot find the template in the JRD data")
-	}
-
-	return template, nil
-}
-
-// Try to discover the user JRD data from the email
-func GetUserJRD(email string) (*jrd.JRD, error) {
-	// TODO support the rel query string parameter
-
-	address, err := MakeEmailAddress(email)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Printf("Fetching WebFinger JRD info for: %s", address.AsURI())
-
-	template, err := GetUserJRDTemplateURL(address.Domain)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Printf("template: %s", template)
-
-	jrd_url := strings.Replace(template, "{uri}", url.QueryEscape(address.AsURI()), 1)
-
-	log.Printf("User JRD URL: %s", jrd_url)
-
-	user_jrd, err := GetJRD(jrd_url)
-	if err != nil {
-		return nil, err
-	}
-
-	if user_jrd.Subject != address.AsURI() {
-		return nil, errors.New("JRD Subject does not match the email")
-	}
-
-	return user_jrd, nil
 }

@@ -8,10 +8,13 @@ import (
 
 func main() {
 	email := os.Args[1]
-	user_jrd, err := webfinger.GetUserJRD(email)
+	resource, err := webfinger.MakeResource(email)
 	if err != nil {
-		fmt.Println(err)
-		return
+		panic(err)
 	}
-	fmt.Printf("User JRD: %+v", user_jrd)
+	jrd, err := resource.GetJRD()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("JRD: %+v", jrd)
 }
