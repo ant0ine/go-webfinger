@@ -6,8 +6,8 @@ import (
 
 func TestParseJRD(t *testing.T) {
 
-        // from spec http://tools.ietf.org/html/rfc6415#appendix-A
-        blob := `
+	// from spec http://tools.ietf.org/html/rfc6415#appendix-A
+	blob := `
         {
               "subject":"http://blog.example.com/article/id/314",
               "expires":"2010-01-30T09:30:00Z",
@@ -48,22 +48,22 @@ func TestParseJRD(t *testing.T) {
               ]
             }
         `
-        obj, err := ParseJRD([]byte(blob))
-        if err != nil {
+	obj, err := ParseJRD([]byte(blob))
+	if err != nil {
 		t.Fatal(err)
-        }
-        if obj.Subject != "http://blog.example.com/article/id/314" {
+	}
+	if obj.Subject != "http://blog.example.com/article/id/314" {
 		t.Error()
-        }
+	}
 	if obj.Properties["http://blgx.example.net/ns/version"] != "1.3" {
 		t.Error()
 	}
-        if obj.GetLinkByRel("copyright") == nil {
+	if obj.GetLinkByRel("copyright") == nil {
 		t.Error()
-        }
-        if obj.GetLinkByRel("copyright").Template != "http://example.com/copyright?id={uri}" {
+	}
+	if obj.GetLinkByRel("copyright").Template != "http://example.com/copyright?id={uri}" {
 		t.Error()
-        }
+	}
 	if obj.GetLinkByRel("author").Titles["default"] != "About the Author" {
 		t.Error()
 	}

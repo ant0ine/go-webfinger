@@ -62,20 +62,20 @@ func TestParseXRD(t *testing.T) {
 		t.Error()
 	}
 
-        jrd_obj := obj.ConvertToJRD()
+	jrd_obj := obj.ConvertToJRD()
 
-        if jrd_obj.Subject != "http://blog.example.com/article/id/314" {
+	if jrd_obj.Subject != "http://blog.example.com/article/id/314" {
 		t.Error()
-        }
+	}
 	if jrd_obj.Properties["http://blgx.example.net/ns/version"] != "1.3" {
 		t.Error()
 	}
-        if jrd_obj.GetLinkByRel("copyright") == nil {
+	if jrd_obj.GetLinkByRel("copyright") == nil {
 		t.Error()
-        }
-        if jrd_obj.GetLinkByRel("copyright").Template != "http://example.com/copyright?id={uri}" {
+	}
+	if jrd_obj.GetLinkByRel("copyright").Template != "http://example.com/copyright?id={uri}" {
 		t.Error()
-        }
+	}
 	if jrd_obj.GetLinkByRel("author").Titles["default"] != "About the Author" {
 		t.Error()
 	}

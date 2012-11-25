@@ -58,4 +58,3 @@ func (self *XRD) LrddTemplate() string {
 	}
 	return link.Template
 }
-

@@ -13,11 +13,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ant0ine/go-webfinger/xrd"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"net/url"
 	"strings"
-	"io/ioutil"
-	"net/http"
 )
 
 type EmailAddress struct { // XXX rename Id or WebFingerId ? it may not be an email address
@@ -100,7 +100,7 @@ func GetUserXRDTemplateURL(domain string) (string, error) {
 
 // Try to discover the user XRD data from the email
 func GetUserXRD(email string) (*xrd.XRD, error) {
-        // TODO support the rel query string parameter
+	// TODO support the rel query string parameter
 
 	address, err := MakeEmailAddress(email)
 	if err != nil {
