@@ -32,7 +32,12 @@ func GetUserJRDTemplateURL(domain string) (string, error) {
 		return "", err
 	}
 
-	template := host_jrd.LrddTemplate()
+	link := host_jrd.GetLinkByRel("lrdd")
+	if link == nil {
+		return "", errors.New("cannot find the LRDD link in the JRD data")
+	}
+
+	template := link.Template
 	if template == "" {
 		return "", errors.New("cannot find the template in the JRD data")
 	}
