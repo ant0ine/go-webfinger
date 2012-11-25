@@ -16,6 +16,8 @@ import (
 	"log"
 	"net/url"
 	"strings"
+	"io/ioutil"
+	"net/http"
 )
 
 type EmailAddress struct { // XXX rename Id or WebFingerId ? it may not be an email address
@@ -49,6 +51,31 @@ func HostXRDURL(domain string) string { // XXX s/XRD/Meta/ ?
 	return "https://" + domain + "/.well-known/host-meta"
 }
 
+func GetXRD(url string) (*xrd.XRD, error) {
+	// TODO follow redirect
+	// TODO try http if https fails
+	// TODO verify signature if not https
+	// TODO extract http cache info
+
+	res, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+
+	content, err := ioutil.ReadAll(res.Body)
+	res.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	parsed, err := xrd.ParseXRD(content)
+	if err != nil {
+		return nil, err
+	}
+
+	return parsed, nil
+}
+
 // Given a domain, this method gets the host meta XRD data,
 // and returns the LRDD user XRD template URL.
 func GetUserXRDTemplateURL(domain string) (string, error) {
@@ -58,7 +85,7 @@ func GetUserXRDTemplateURL(domain string) (string, error) {
 
 	log.Printf("Fetching Host XRD URL: %s", xrd_url)
 
-	host_xrd, err := xrd.GetXRD(xrd_url)
+	host_xrd, err := GetXRD(xrd_url)
 	if err != nil {
 		return "", err
 	}
@@ -73,6 +100,7 @@ func GetUserXRDTemplateURL(domain string) (string, error) {
 
 // Try to discover the user XRD data from the email
 func GetUserXRD(email string) (*xrd.XRD, error) {
+        // TODO support the rel query string parameter
 
 	address, err := MakeEmailAddress(email)
 	if err != nil {
@@ -92,7 +120,7 @@ func GetUserXRD(email string) (*xrd.XRD, error) {
 
 	log.Printf("User XRD URL: %s", xrd_url)
 
-	user_xrd, err := xrd.GetXRD(xrd_url)
+	user_xrd, err := GetXRD(xrd_url)
 	if err != nil {
 		return nil, err
 	}

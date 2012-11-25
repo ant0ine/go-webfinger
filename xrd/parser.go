@@ -2,8 +2,6 @@ package xrd
 
 import (
 	"encoding/xml"
-	"io/ioutil"
-	"net/http"
 )
 
 // XRD spec: http://docs.oasis-open.org/xri/xrd/v1.0/xrd-1.0.html
@@ -33,31 +31,6 @@ type Link struct {
 	Title    []Title
 	Property []Property
 	Template string `xml:"template,attr"`
-}
-
-func GetXRD(url string) (*XRD, error) {
-	// TODO follow redirect
-	// TODO try http if https fails
-	// TODO verify signature if not https
-	// TODO extract http cache info
-
-	res, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	}
-
-	content, err := ioutil.ReadAll(res.Body)
-	res.Body.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	parsed, err := ParseXRD(content)
-	if err != nil {
-		return nil, err
-	}
-
-	return parsed, nil
 }
 
 func ParseXRD(blob []byte) (*XRD, error) {
