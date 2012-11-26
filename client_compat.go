@@ -13,11 +13,27 @@ func HostJRDURLs(domain string) []string {
 	return []string{
 		// first JRD implementation
 		"https://" + domain + "/.well-known/host-meta.json",
-		"http://" + domain + "/.well-known/host-meta.json",
 		// orignal spec: https://code.google.com/p/webfinger/wiki/WebFingerProtocol
 		"https://" + domain + "/.well-known/host-meta",
-		"http://" + domain + "/.well-known/host-meta",
 	}
+}
+
+// Try to call FetchJRD on each url until a successful response.
+func FindJRD(urls []string) (*jrd.JRD, error) {
+	for _, try := range urls {
+		try_obj, err := url.Parse(try)
+		if err != nil {
+			log.Print(err)
+			continue
+		}
+		obj, err := FetchJRD(try_obj)
+		if err != nil {
+			log.Print(err)
+			continue
+		}
+		return obj, nil
+	}
+	return nil, errors.New("JRD not found")
 }
 
 // Given a domain, this method gets the host meta JRD data,
@@ -54,11 +70,11 @@ func (self *Resource) GetJRDCompat() (*jrd.JRD, error) {
 
 	log.Printf("template: %s", template)
 
-	jrd_url := strings.Replace(template, "{uri}", url.QueryEscape(self.AsURI()), 1)
+	jrd_url := strings.Replace(template, "{uri}", url.QueryEscape(self.AsURIString()), 1)
 
 	log.Printf("User JRD URL: %s", jrd_url)
 
-	resource_jrd, err := FetchJRD(jrd_url)
+	resource_jrd, err := FindJRD([]string{jrd_url})
 	if err != nil {
 		return nil, err
 	}

@@ -14,7 +14,8 @@ func main() {
 	}
 	jrd, err := resource.GetJRD()
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 	fmt.Printf("JRD: %+v", jrd)
 }
