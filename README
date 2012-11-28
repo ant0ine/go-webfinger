@@ -8,45 +8,69 @@ package webfinger
     (This is a work in progress, the API is not frozen)
 
     This implementation tries to follow the last spec:
-    http://tools.ietf.org/html/draft-ietf-appsawg-webfinger-04 And also
-    tries to provide backwark compatibility with the original spec:
+    http://tools.ietf.org/html/draft-ietf-appsawg-webfinger-04
+
+    And also tries to provide backwark compatibility with the original spec:
     https://code.google.com/p/webfinger/wiki/WebFingerProtocol
 
     Example:
 
-	     import (
-	         "fmt"
-	         "github.com/ant0ine/go-webfinger"
-	     )
-	     resource, err := webfinger.MakeResource("user@host")
-		if err != nil {
-			panic(err)
-		}
-		jrd, err := resource.GetJRD()
-		if err != nil {
-			panic(err)
-		}
-		fmt.Printf("JRD: %+v", jrd)
+	        package main
+	        import (
+	        	"fmt"
+	             "github.com/ant0ine/go-webfinger"
+		        "os"
+	        )
+	        func main() {
+		        email := os.Args[1]
+		        client := webfinger.Client{
+		        	EnableLegacyAPISupport: true,
+		        }
+		        resource, err := webfinger.MakeResource(email)
+		        if err != nil {
+			        panic(err)
+		        }
+		        jrd, err := client.GetJRD(resource)
+		        if err != nil {
+			        fmt.Println(err)
+			        return
+		        }
+		        fmt.Printf("JRD: %+v", jrd)
+	        }
 
-FUNCTIONS
+TYPES
 
-func FetchJRD(jrd_url *url.URL) (*jrd.JRD, error)
+type Client struct {
+    EnableLegacyAPISupport bool
+}
+    WebFinger Client
+
+func (self *Client) FetchJRD(jrd_url *url.URL) (*jrd.JRD, error)
     Given an URL, get and parse the JRD. It follows redirect, and retries
     with http if https is not available. [Compat Note] If the payload is in
     XRD, this method parses it and converts it to JRD.
 
-func FindJRD(urls []string) (*jrd.JRD, error)
+func (self *Client) FindJRD(urls []string) (*jrd.JRD, error)
     Try to call FetchJRD on each url until a successful response.
 
-func GetUserJRDTemplateURL(domain string) (string, error)
+func (self *Client) GetJRD(resource *Resource) (*jrd.JRD, error)
+    Get the JRD data for this resource.
+
+func (self *Client) GetJRDPart(resource *Resource, rels []string) (*jrd.JRD, error)
+    Get the JRD data for this resource with the ability to specify which
+    "rel" links to include.
+
+func (self *Client) LegacyGetJRD(resource *Resource) (*jrd.JRD, error)
+    Get the JRD data for this resource. Implement the original WebFinger
+    API, ie: first fetch the Host metadata, find the LRDD link, fetch the
+    resource data and convert the XRD in JRD if necessary.
+
+func (self *Client) LegacyGetResourceJRDTemplateURL(domain string) (string, error)
     Given a domain, this method gets the host meta JRD data, and returns the
-    LRDD user JRD template URL.
+    LRDD resource JRD template URL.
 
-func HostJRDURLs(domain string) []string
+func (self *Client) LegacyHostJRDURLs(domain string) []string
     Build a serie well known host JRD URLs from the domain
-
-
-TYPES
 
 type Resource struct {
     Local  string
@@ -59,15 +83,6 @@ func MakeResource(email string) (*Resource, error)
 
 func (self *Resource) AsURIString() string
     Return the resource as an URI string (eg: acct:user@domain)
-
-func (self *Resource) GetJRD() (*jrd.JRD, error)
-    Get the JRD data for this resource.
-
-func (self *Resource) GetJRDCompat() (*jrd.JRD, error)
-
-func (self *Resource) GetJRDPart(rels []string) (*jrd.JRD, error)
-    Get the JRD data for this resource with the ability to specify which
-    "rel" links to include.
 
 func (self *Resource) JRDURL(rels []string) *url.URL
     Generate the WebFinger URL that points to the JRD data for this

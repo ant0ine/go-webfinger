@@ -4,24 +4,40 @@
 //
 // This implementation tries to follow the last spec:
 // http://tools.ietf.org/html/draft-ietf-appsawg-webfinger-04
+//
 // And also tries to provide backwark compatibility with the original spec:
 // https://code.google.com/p/webfinger/wiki/WebFingerProtocol
 //
 // Example:
-//      import (
-//          "fmt"
-//          "github.com/ant0ine/go-webfinger"
-//      )
 //
-//      resource, err := webfinger.MakeResource("user@host")
-//	if err != nil {
-//		panic(err)
-//	}
-//	jrd, err := resource.GetJRD()
-//	if err != nil {
-//		panic(err)
-//	}
-//	fmt.Printf("JRD: %+v", jrd)
+//         package main
+//
+//         import (
+//         	"fmt"
+//              "github.com/ant0ine/go-webfinger"
+//	        "os"
+//         )
+//
+//         func main() {
+//	        email := os.Args[1]
+//
+//	        client := webfinger.Client{
+//	        	EnableLegacyAPISupport: true,
+//	        }
+//
+//	        resource, err := webfinger.MakeResource(email)
+//	        if err != nil {
+//		        panic(err)
+//	        }
+//
+//	        jrd, err := client.GetJRD(resource)
+//	        if err != nil {
+//		        fmt.Println(err)
+//		        return
+//	        }
+//
+//	        fmt.Printf("JRD: %+v", jrd)
+//         }
 package webfinger
 
 import (
@@ -75,27 +91,37 @@ func (self *Resource) JRDURL(rels []string) *url.URL {
 	}
 }
 
+// WebFinger Client
+type Client struct {
+	EnableLegacyAPISupport bool
+}
+
 // Get the JRD data for this resource with the ability to specify which "rel" links to include.
-func (self *Resource) GetJRDPart(rels []string) (*jrd.JRD, error) {
+func (self *Client) GetJRDPart(resource *Resource, rels []string) (*jrd.JRD, error) {
 
-	log.Printf("Trying to get WebFinger JRD data for: %s", self.AsURIString())
+	log.Printf("Trying to get WebFinger JRD data for: %s", resource.AsURIString())
 
-	resource_jrd, err := FetchJRD(self.JRDURL(rels))
+	resource_jrd, err := self.FetchJRD(resource.JRDURL(rels))
 	if err != nil {
-		log.Print(err)
-		log.Print("Fallback to the original WebFinger spec")
-		resource_jrd, err = self.GetJRDCompat()
-		if err != nil {
+		// Try the original WebFinger API
+		if self.EnableLegacyAPISupport == true {
+			log.Print(err)
+			log.Print("Fallback to the original WebFinger spec")
+			resource_jrd, err = self.LegacyGetJRD(resource)
+			if err != nil {
+				return nil, err
+			}
+		} else {
 			return nil, err
 		}
 	}
 
 	// verify the subject
-	if resource_jrd.Subject != self.AsURIString() {
+	if resource_jrd.Subject != resource.AsURIString() {
 		return nil, errors.New(
 			fmt.Sprintf(
 				"JRD Subject does not match the resource: %s",
-				self.AsURIString(),
+				resource.AsURIString(),
 			),
 		)
 	}
@@ -104,15 +130,15 @@ func (self *Resource) GetJRDPart(rels []string) (*jrd.JRD, error) {
 }
 
 // Get the JRD data for this resource.
-func (self *Resource) GetJRD() (*jrd.JRD, error) {
-	return self.GetJRDPart(nil)
+func (self *Client) GetJRD(resource *Resource) (*jrd.JRD, error) {
+	return self.GetJRDPart(resource, nil)
 }
 
 // Given an URL, get and parse the JRD.
 // It follows redirect, and retries with http if https is not available.
 // [Compat Note] If the payload is in XRD, this method parses it
 // and converts it to JRD.
-func FetchJRD(jrd_url *url.URL) (*jrd.JRD, error) {
+func (self *Client) FetchJRD(jrd_url *url.URL) (*jrd.JRD, error) {
 	// TODO verify signature if not https
 	// TODO extract http cache info
 
