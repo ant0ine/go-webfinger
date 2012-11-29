@@ -3,7 +3,7 @@
 // (This is a work in progress, the API is not frozen)
 //
 // This implementation tries to follow the last spec:
-// http://tools.ietf.org/html/draft-ietf-appsawg-webfinger-04
+// http://tools.ietf.org/html/draft-ietf-appsawg-webfinger-05
 //
 // And also tries to provide backwark compatibility with the original spec:
 // https://code.google.com/p/webfinger/wiki/WebFingerProtocol
