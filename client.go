@@ -96,12 +96,12 @@ type Client struct {
 	EnableLegacyAPISupport bool
 }
 
-// Get the JRD data for this resource with the ability to specify which "rel" links to include.
+// Same as GetJRD, with the ability to specify which "rel" links to include.
 func (self *Client) GetJRDPart(resource *Resource, rels []string) (*jrd.JRD, error) {
 
 	log.Printf("Trying to get WebFinger JRD data for: %s", resource.AsURIString())
 
-	resource_jrd, err := self.FetchJRD(resource.JRDURL(rels))
+	resource_jrd, err := self.fetch_JRD(resource.JRDURL(rels))
 	if err != nil {
 		// Try the original WebFinger API
 		if self.EnableLegacyAPISupport == true {
@@ -130,15 +130,14 @@ func (self *Client) GetJRDPart(resource *Resource, rels []string) (*jrd.JRD, err
 }
 
 // Get the JRD data for this resource.
+// It follows redirect, and retries with http if https is not available.
+// [Compat Note] If the response payload is in XRD, this method parses it
+// and converts it to JRD.
 func (self *Client) GetJRD(resource *Resource) (*jrd.JRD, error) {
 	return self.GetJRDPart(resource, nil)
 }
 
-// Given an URL, get and parse the JRD.
-// It follows redirect, and retries with http if https is not available.
-// [Compat Note] If the payload is in XRD, this method parses it
-// and converts it to JRD.
-func (self *Client) FetchJRD(jrd_url *url.URL) (*jrd.JRD, error) {
+func (self *Client) fetch_JRD(jrd_url *url.URL) (*jrd.JRD, error) {
 	// TODO verify signature if not https
 	// TODO extract http cache info
 

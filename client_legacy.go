@@ -8,15 +8,14 @@ import (
 	"strings"
 )
 
-// Try to call FetchJRD on each url until a successful response.
-func (self *Client) FindJRD(urls []string) (*jrd.JRD, error) {
+func (self *Client) find_JRD(urls []string) (*jrd.JRD, error) {
 	for _, try := range urls {
 		try_obj, err := url.Parse(try)
 		if err != nil {
 			log.Print(err)
 			continue
 		}
-		obj, err := self.FetchJRD(try_obj)
+		obj, err := self.fetch_JRD(try_obj)
 		if err != nil {
 			log.Print(err)
 			continue
@@ -38,12 +37,13 @@ func (self *Client) LegacyHostJRDURLs(domain string) []string {
 
 // Given a domain, this method gets the host meta JRD data,
 // and returns the LRDD resource JRD template URL.
+// It tries all the urls returned by client.LegacyHostJRDURLs.
 func (self *Client) LegacyGetResourceJRDTemplateURL(domain string) (string, error) {
 	// TODO implement heavy HTTP cache around this
 
 	urls := self.LegacyHostJRDURLs(domain)
 
-	host_jrd, err := self.FindJRD(urls)
+	host_jrd, err := self.find_JRD(urls)
 	if err != nil {
 		return "", err
 	}
@@ -77,7 +77,7 @@ func (self *Client) LegacyGetJRD(resource *Resource) (*jrd.JRD, error) {
 
 	log.Printf("User JRD URL: %s", jrd_url)
 
-	resource_jrd, err := self.FindJRD([]string{jrd_url})
+	resource_jrd, err := self.find_JRD([]string{jrd_url})
 	if err != nil {
 		return nil, err
 	}
