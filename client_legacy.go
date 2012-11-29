@@ -25,7 +25,7 @@ func (self *Client) find_JRD(urls []string) (*jrd.JRD, error) {
 	return nil, errors.New("JRD not found")
 }
 
-// Build a serie well known host JRD URLs from the domain
+// Build a serie of well known host JRD URLs from the domain
 func (self *Client) LegacyHostJRDURLs(domain string) []string {
 	return []string{
 		// first JRD implementation

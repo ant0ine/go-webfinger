@@ -131,8 +131,8 @@ func (self *Client) GetJRDPart(resource *Resource, rels []string) (*jrd.JRD, err
 
 // Get the JRD data for this resource.
 // It follows redirect, and retries with http if https is not available.
-// [Compat Note] If the response payload is in XRD, this method parses it
-// and converts it to JRD.
+// If the response payload is in XRD, this method parses it
+// and converts it to JRD. (see the xrd and jrd packages)
 func (self *Client) GetJRD(resource *Resource) (*jrd.JRD, error) {
 	return self.GetJRDPart(resource, nil)
 }

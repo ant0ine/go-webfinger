@@ -47,8 +47,9 @@ type Client struct {
 
 func (self *Client) GetJRD(resource *Resource) (*jrd.JRD, error)
     Get the JRD data for this resource. It follows redirect, and retries
-    with http if https is not available. [Compat Note] If the response
-    payload is in XRD, this method parses it and converts it to JRD.
+    with http if https is not available. If the response payload is in XRD,
+    this method parses it and converts it to JRD. (see the xrd and jrd
+    packages)
 
 func (self *Client) GetJRDPart(resource *Resource, rels []string) (*jrd.JRD, error)
     Same as GetJRD, with the ability to specify which "rel" links to
@@ -65,7 +66,7 @@ func (self *Client) LegacyGetResourceJRDTemplateURL(domain string) (string, erro
     client.LegacyHostJRDURLs.
 
 func (self *Client) LegacyHostJRDURLs(domain string) []string
-    Build a serie well known host JRD URLs from the domain
+    Build a serie of well known host JRD URLs from the domain
 
 type Resource struct {
     Local  string
