@@ -4,7 +4,7 @@ import (
 	"github.com/ant0ine/go-webfinger/jrd"
 )
 
-// Convert the XRD to JRD
+// ConvertToJRD converts the XRD to JRD.
 func (self *XRD) ConvertToJRD() *jrd.JRD {
 	obj := jrd.JRD{}
 
@@ -13,7 +13,7 @@ func (self *XRD) ConvertToJRD() *jrd.JRD {
 	obj.Aliases = self.Alias
 
 	for _, link := range self.Link {
-		obj.Links = append(obj.Links, _convert_link(&link))
+		obj.Links = append(obj.Links, convertLink(&link))
 	}
 
 	obj.Properties = make(map[string]interface{})
@@ -24,7 +24,7 @@ func (self *XRD) ConvertToJRD() *jrd.JRD {
 	return &obj
 }
 
-func _convert_link(link *Link) jrd.Link {
+func convertLink(link *Link) jrd.Link {
 	obj := jrd.Link{}
 
 	obj.Rel = link.Rel

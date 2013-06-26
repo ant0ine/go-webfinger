@@ -62,24 +62,24 @@ func TestParseXRD(t *testing.T) {
 		t.Error()
 	}
 
-	jrd_obj := obj.ConvertToJRD()
+	jrdObj := obj.ConvertToJRD()
 
-	if jrd_obj.Subject != "http://blog.example.com/article/id/314" {
+	if jrdObj.Subject != "http://blog.example.com/article/id/314" {
 		t.Error()
 	}
-	if jrd_obj.Properties["http://blgx.example.net/ns/version"] != "1.3" {
+	if jrdObj.Properties["http://blgx.example.net/ns/version"] != "1.3" {
 		t.Error()
 	}
-	if jrd_obj.GetLinkByRel("copyright") == nil {
+	if jrdObj.GetLinkByRel("copyright") == nil {
 		t.Error()
 	}
-	if jrd_obj.GetLinkByRel("copyright").Template != "http://example.com/copyright?id={uri}" {
+	if jrdObj.GetLinkByRel("copyright").Template != "http://example.com/copyright?id={uri}" {
 		t.Error()
 	}
-	if jrd_obj.GetLinkByRel("author").Titles["default"] != "About the Author" {
+	if jrdObj.GetLinkByRel("author").Titles["default"] != "About the Author" {
 		t.Error()
 	}
-	if jrd_obj.GetLinkByRel("author").Properties["http://example.com/role"] != "editor" {
+	if jrdObj.GetLinkByRel("author").Properties["http://example.com/role"] != "editor" {
 		t.Error()
 	}
 }
