@@ -1,4 +1,5 @@
-// Simple Client Implementation of WebFinger
+// Package webfinger provides a simple client implementation of the WebFinger
+// protocol.
 //
 // (This is a work in progress, the API is not frozen)
 //
@@ -52,13 +53,13 @@ import (
 	"strings"
 )
 
-// WebFinger Resource
+// Resource represents a WebFinger resource.
 type Resource struct {
 	Local  string
 	Domain string
 }
 
-// Parse the email string and return a *Resource
+// MakeResource constructs a WebFinger resource for the provided email string.
 func MakeResource(email string) (*Resource, error) {
 	// TODO validate address, see http://www.ietf.org/rfc/rfc2822.txt
 	// TODO accept an email address URI
@@ -73,12 +74,12 @@ func MakeResource(email string) (*Resource, error) {
 	}, nil
 }
 
-// Return the resource as an URI string (eg: acct:user@domain)
+// AsURIString returns the resource as an URI string (eg: acct:user@domain).
 func (self *Resource) AsURIString() string {
 	return fmt.Sprintf("acct:%s@%s", self.Local, self.Domain)
 }
 
-// Generate the WebFinger URL that points to the JRD data for this resource.
+// JRDURL returns the WebFinger URL that points to the JRD data for this resource.
 func (self *Resource) JRDURL(rels []string) *url.URL {
 	return &url.URL{
 		Scheme: "https",
@@ -91,23 +92,26 @@ func (self *Resource) JRDURL(rels []string) *url.URL {
 	}
 }
 
-// WebFinger Client
+// A Client is a WebFinger client.
 type Client struct {
+	// EnableLegacyAPISupport specifies if the client should fall back to the legacy
+	// WebFinger protocol (specified through draft-02).
 	EnableLegacyAPISupport bool
 }
 
-// Same as GetJRD, with the ability to specify which "rel" links to include.
+// GetJRDPart returns the JRD for the specified resource, with the ability to
+// specify which "rel" links to include.
 func (self *Client) GetJRDPart(resource *Resource, rels []string) (*jrd.JRD, error) {
 
 	log.Printf("Trying to get WebFinger JRD data for: %s", resource.AsURIString())
 
-	resource_jrd, err := self.fetch_JRD(resource.JRDURL(rels))
+	resourceJRD, err := self.fetchJRD(resource.JRDURL(rels))
 	if err != nil {
 		// Try the original WebFinger API
 		if self.EnableLegacyAPISupport == true {
 			log.Print(err)
 			log.Print("Fallback to the original WebFinger spec")
-			resource_jrd, err = self.LegacyGetJRD(resource)
+			resourceJRD, err = self.LegacyGetJRD(resource)
 			if err != nil {
 				return nil, err
 			}
@@ -126,10 +130,10 @@ func (self *Client) GetJRDPart(resource *Resource, rels []string) (*jrd.JRD, err
 		)
 	}
 
-	return resource_jrd, nil
+	return resourceJRD, nil
 }
 
-// Get the JRD data for this resource.
+// GetJRD returns the JRD data for this resource.
 // It follows redirect, and retries with http if https is not available.
 // If the response payload is in XRD, this method parses it
 // and converts it to JRD. (see the xrd and jrd packages)
@@ -137,19 +141,19 @@ func (self *Client) GetJRD(resource *Resource) (*jrd.JRD, error) {
 	return self.GetJRDPart(resource, nil)
 }
 
-func (self *Client) fetch_JRD(jrd_url *url.URL) (*jrd.JRD, error) {
+func (self *Client) fetchJRD(jrdURL *url.URL) (*jrd.JRD, error) {
 	// TODO verify signature if not https
 	// TODO extract http cache info
 
 	// Get follows up to 10 redirects
-	log.Printf("GET %s", jrd_url.String())
-	res, err := http.Get(jrd_url.String())
+	log.Printf("GET %s", jrdURL.String())
+	res, err := http.Get(jrdURL.String())
 	if err != nil {
 		// retry with http instead of https
 		if strings.Contains(err.Error(), "connection refused") {
-			jrd_url.Scheme = "http"
-			log.Printf("GET %s", jrd_url.String())
-			res, err = http.Get(jrd_url.String())
+			jrdURL.Scheme = "http"
+			log.Printf("GET %s", jrdURL.String())
+			res, err = http.Get(jrdURL.String())
 			if err != nil {
 				return nil, err
 			}
