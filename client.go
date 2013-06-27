@@ -121,7 +121,7 @@ func (self *Client) GetJRDPart(resource *Resource, rels []string) (*jrd.JRD, err
 	}
 
 	// verify the subject
-	if resource_jrd.Subject != resource.AsURIString() {
+	if resourceJRD.Subject != resource.AsURIString() {
 		return nil, errors.New(
 			fmt.Sprintf(
 				"JRD Subject does not match the resource: %s",
