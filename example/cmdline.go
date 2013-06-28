@@ -10,6 +10,7 @@ func main() {
 	email := os.Args[1]
 
 	client := webfinger.NewClient(nil)
+	client.AllowHTTP = true
 
 	jrd, err := client.Lookup(email, nil)
 	if err != nil {

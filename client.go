@@ -121,6 +121,11 @@ func (r *Resource) JRDURL(host string, rels []string) *url.URL {
 type Client struct {
 	// HTTP client used to perform WebFinger lookups.
 	client *http.Client
+
+	// Allow the use of HTTP endoints for lookups.  The WebFinger spec requires
+	// all lookups be performed over HTTPS, so this should only ever be enabled
+	// for development.
+	AllowHTTP bool
 }
 
 // DefaultClient is the default Client and is used by Lookup.
@@ -171,8 +176,12 @@ func (self *Client) fetchJRD(jrdURL *url.URL) (*jrd.JRD, error) {
 	log.Printf("GET %s", jrdURL.String())
 	res, err := self.client.Get(jrdURL.String())
 	if err != nil {
-		// retry with http instead of https
-		if strings.Contains(err.Error(), "connection refused") {
+		log.Printf("%s", err)
+		errString := strings.ToLower(err.Error())
+		// For some crazy reason, App Engine returns a "ssl_certificate_error" when
+		// unable to connect to an HTTPS URL, so we check for that as well here.
+		if (strings.Contains(errString, "connection refused") ||
+			strings.Contains(errString, "ssl_certificate_error")) && self.AllowHTTP {
 			jrdURL.Scheme = "http"
 			log.Printf("GET %s", jrdURL.String())
 			res, err = self.client.Get(jrdURL.String())
