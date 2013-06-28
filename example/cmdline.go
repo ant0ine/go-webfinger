@@ -11,12 +11,7 @@ func main() {
 
 	client := webfinger.NewClient(nil)
 
-	resource, err := webfinger.Parse(email)
-	if err != nil {
-		panic(err)
-	}
-
-	jrd, err := client.GetJRD(resource)
+	jrd, err := client.Lookup(email, nil)
 	if err != nil {
 		fmt.Println(err)
 		return

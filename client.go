@@ -123,6 +123,18 @@ type Client struct {
 	client *http.Client
 }
 
+// DefaultClient is the default Client and is used by Lookup.
+var DefaultClient = &Client{
+	client:        http.DefaultClient,
+}
+
+// Lookup returns the JRD for the specified identifier.
+//
+// Lookup is a wrapper around DefaultClient.Lookup.
+func Lookup(identifier string, rels []string) (*jrd.JRD, error) {
+	return DefaultClient.Lookup(identifier, rels)
+}
+
 // NewClient returns a new WebFinger client.  If a nil http.Client is provied,
 // http.DefaultClient will be used.
 func NewClient(httpClient *http.Client) *Client {
@@ -132,24 +144,23 @@ func NewClient(httpClient *http.Client) *Client {
 	return &Client{client: httpClient}
 }
 
-// GetJRDPart returns the JRD for the specified resource, with the ability to
-// specify which "rel" links to include.
-func (self *Client) GetJRDPart(resource *Resource, rels []string) (*jrd.JRD, error) {
+// Lookup returns the JRD for the specified identifier.  If provided, only the
+// specified rel values will be requested, though WebFinger servers are not
+// obligated to respect that request.
+func (c *Client) Lookup(identifier string, rels []string) (*jrd.JRD, error) {
+	resource, err := Parse(identifier)
+	if err != nil {
+		return nil, err
+	}
 
-	log.Printf("Trying to get WebFinger JRD data for: %s", resource.String())
+	log.Printf("Looking up WebFinger data for %s", resource)
 
-	resourceJRD, err := self.fetchJRD(resource.JRDURL("", rels))
+	resourceJRD, err := c.fetchJRD(resource.JRDURL("", rels))
 	if err != nil {
 		return nil, err
 	}
 
 	return resourceJRD, nil
-}
-
-// GetJRD returns the JRD data for this resource.
-// It follows redirect, and retries with http if https is not available.
-func (self *Client) GetJRD(resource *Resource) (*jrd.JRD, error) {
-	return self.GetJRDPart(resource, nil)
 }
 
 func (self *Client) fetchJRD(jrdURL *url.URL) (*jrd.JRD, error) {
