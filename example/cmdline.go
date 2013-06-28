@@ -11,7 +11,7 @@ func main() {
 
 	client := webfinger.NewClient(nil)
 
-	resource, err := webfinger.MakeResource(email)
+	resource, err := webfinger.Parse(email)
 	if err != nil {
 		panic(err)
 	}

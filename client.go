@@ -50,40 +50,68 @@ import (
 	"strings"
 )
 
-// Resource represents a WebFinger resource.
-type Resource struct {
-	Local  string
-	Domain string
-}
+// Resource is a resource for which a WebFinger query can be issued.
+type Resource url.URL
 
-// MakeResource constructs a WebFinger resource for the provided email string.
-func MakeResource(email string) (*Resource, error) {
-	// TODO validate address, see http://www.ietf.org/rfc/rfc2822.txt
-	// TODO accept an email address URI
-	// TODO support mailto: http:  <= rework that
-	parts := strings.SplitN(email, "@", 2)
-	if len(parts) < 2 {
-		return nil, errors.New("not a valid email")
+// Parse parses rawurl into a WebFinger Resource.  The rawurl should be an
+// absolute URL, or an email-like identifier (e.g. "bob@example.com").
+func Parse(rawurl string) (*Resource, error) {
+	u, err := url.Parse(rawurl)
+	if err != nil {
+		return nil, err
 	}
-	return &Resource{
-		Local:  parts[0],
-		Domain: parts[1],
-	}, nil
+
+	// if parsed URL has no scheme but is email-like, treat it as an acct: URL.
+	if u.Scheme == "" {
+		parts := strings.SplitN(rawurl, "@", 2)
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("URL must be absolute, or an email address: %v", rawurl)
+		}
+		return Parse("acct:" + rawurl)
+	}
+
+	r := Resource(*u)
+	return &r, nil
 }
 
-// AsURIString returns the resource as an URI string (eg: acct:user@domain).
-func (self *Resource) AsURIString() string {
-	return fmt.Sprintf("acct:%s@%s", self.Local, self.Domain)
+// WebFingerHost returns the default host for issuing WebFinger queries for
+// this resource.  For Resource URLs with a host component, that value is used.
+// For URLs that do not have a host component, the host is determined by other
+// mains if possible (for example, the domain in the addr-spec of a mailto
+// URL).  If the host cannot be determined from the URL, this value will be an
+// empty string.
+func (r *Resource) WebFingerHost() string {
+	if r.Host != "" {
+		return r.Host
+	} else if r.Scheme == "acct" || r.Scheme == "mailto" {
+		parts := strings.SplitN(r.Opaque, "@", 2)
+		if len(parts) == 2 {
+			return parts[1]
+		}
+	}
+	return ""
 }
 
-// JRDURL returns the WebFinger URL that points to the JRD data for this resource.
-func (self *Resource) JRDURL(rels []string) *url.URL {
+// String reassembles the Resource into a valid URL string.
+func (r *Resource) String() string {
+	u := url.URL(*r)
+	return u.String()
+}
+
+// JRDURL returns the WebFinger query URL at the specified host for this
+// resource.  If host is an empty string, the default host for the resource
+// will be used, as returned from WebFingerHost().
+func (r *Resource) JRDURL(host string, rels []string) *url.URL {
+	if host == "" {
+		host = r.WebFingerHost()
+	}
+
 	return &url.URL{
 		Scheme: "https",
-		Host:   self.Domain,
+		Host:   host,
 		Path:   "/.well-known/webfinger",
 		RawQuery: url.Values{
-			"resource": []string{self.AsURIString()},
+			"resource": []string{r.String()},
 			"rel":      rels,
 		}.Encode(),
 	}
@@ -108,9 +136,9 @@ func NewClient(httpClient *http.Client) *Client {
 // specify which "rel" links to include.
 func (self *Client) GetJRDPart(resource *Resource, rels []string) (*jrd.JRD, error) {
 
-	log.Printf("Trying to get WebFinger JRD data for: %s", resource.AsURIString())
+	log.Printf("Trying to get WebFinger JRD data for: %s", resource.String())
 
-	resourceJRD, err := self.fetchJRD(resource.JRDURL(rels))
+	resourceJRD, err := self.fetchJRD(resource.JRDURL("", rels))
 	if err != nil {
 		return nil, err
 	}
