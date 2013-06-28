@@ -6,11 +6,10 @@ import (
 
 func TestParseJRD(t *testing.T) {
 
-	// from spec http://tools.ietf.org/html/rfc6415#appendix-A
+	// Adapted from spec http://tools.ietf.org/html/rfc6415#appendix-A
 	blob := `
         {
               "subject":"http://blog.example.com/article/id/314",
-              "expires":"2010-01-30T09:30:00Z",
 
               "aliases":[
                 "http://blog.example.com/cool_new_thing",
@@ -42,8 +41,7 @@ func TestParseJRD(t *testing.T) {
                   }
                 },
                 {
-                  "rel":"copyright",
-                  "template":"http://example.com/copyright?id={uri}"
+                  "rel":"copyright"
                 }
               ]
             }
@@ -55,19 +53,19 @@ func TestParseJRD(t *testing.T) {
 	if obj.Subject != "http://blog.example.com/article/id/314" {
 		t.Error()
 	}
-	if obj.Properties["http://blgx.example.net/ns/version"] != "1.3" {
+	if obj.GetProperty("http://blgx.example.net/ns/version") != "1.3" {
+		t.Error()
+	}
+	if obj.GetProperty("http://blgx.example.net/ns/ext") != "" {
 		t.Error()
 	}
 	if obj.GetLinkByRel("copyright") == nil {
 		t.Error()
 	}
-	if obj.GetLinkByRel("copyright").Template != "http://example.com/copyright?id={uri}" {
-		t.Error()
-	}
 	if obj.GetLinkByRel("author").Titles["default"] != "About the Author" {
 		t.Error()
 	}
-	if obj.GetLinkByRel("author").Properties["http://example.com/role"] != "editor" {
+	if obj.GetLinkByRel("author").GetProperty("http://example.com/role") != "editor" {
 		t.Error()
 	}
 }

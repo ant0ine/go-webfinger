@@ -1,6 +1,7 @@
 // Package jrd provides a simple JRD parser.
 //
-// JRD spec: http://tools.ietf.org/html/rfc6415#appendix-A
+// Following this JRD spec: http://tools.ietf.org/html/draft-ietf-appsawg-webfinger-14#section-4.4
+//
 package jrd
 
 import (
@@ -11,10 +12,9 @@ import (
 // for a resource.
 type JRD struct {
 	Subject    string
-	Expires    string
 	Aliases    []string
-	Links      []Link
 	Properties map[string]interface{}
+	Links      []Link
 }
 
 // Link is a link to a related resource.
@@ -24,7 +24,6 @@ type Link struct {
 	Href       string
 	Titles     map[string]string
 	Properties map[string]interface{}
-	Template   string
 }
 
 // ParseJRD parses the JRD using json.Unmarshal.
@@ -45,4 +44,22 @@ func (self *JRD) GetLinkByRel(rel string) *Link {
 		}
 	}
 	return nil
+}
+
+// GetProperty Returns the property value as a string.
+// Per spec a property value can be null, empty string is returned in this case.
+func (self *JRD) GetProperty(uri string) string {
+	if self.Properties[uri] == nil {
+		return ""
+	}
+	return self.Properties[uri].(string)
+}
+
+// GetProperty Returns the property value as a string.
+// Per spec a property value can be null, empty string is returned in this case.
+func (self *Link) GetProperty(uri string) string {
+	if self.Properties[uri] == nil {
+		return ""
+	}
+	return self.Properties[uri].(string)
 }
