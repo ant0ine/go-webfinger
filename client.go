@@ -22,9 +22,7 @@
 //  func main() {
 //          email := os.Args[1]
 //
-//          client := webfinger.Client{
-//                  EnableLegacyAPISupport: true,
-//          }
+//          client := webfinger.NewClient(nil)
 //
 //          resource, err := webfinger.MakeResource(email)
 //          if err != nil {
@@ -94,9 +92,21 @@ func (self *Resource) JRDURL(rels []string) *url.URL {
 
 // A Client is a WebFinger client.
 type Client struct {
+	// HTTP client used to perform WebFinger lookups.
+	client *http.Client
+
 	// EnableLegacyAPISupport specifies if the client should fall back to the legacy
 	// WebFinger protocol (specified through draft-02).
 	EnableLegacyAPISupport bool
+}
+
+// NewClient returns a new WebFinger client.  If a nil http.Client is provied,
+// http.DefaultClient will be used.
+func NewClient(httpClient *http.Client) *Client {
+	if httpClient == nil {
+		httpClient = http.DefaultClient
+	}
+	return &Client{client: httpClient}
 }
 
 // GetJRDPart returns the JRD for the specified resource, with the ability to
@@ -147,13 +157,13 @@ func (self *Client) fetchJRD(jrdURL *url.URL) (*jrd.JRD, error) {
 
 	// Get follows up to 10 redirects
 	log.Printf("GET %s", jrdURL.String())
-	res, err := http.Get(jrdURL.String())
+	res, err := self.client.Get(jrdURL.String())
 	if err != nil {
 		// retry with http instead of https
 		if strings.Contains(err.Error(), "connection refused") {
 			jrdURL.Scheme = "http"
 			log.Printf("GET %s", jrdURL.String())
-			res, err = http.Get(jrdURL.String())
+			res, err = self.client.Get(jrdURL.String())
 			if err != nil {
 				return nil, err
 			}
@@ -173,7 +183,8 @@ func (self *Client) fetchJRD(jrdURL *url.URL) (*jrd.JRD, error) {
 	}
 
 	ct := strings.ToLower(res.Header.Get("content-type"))
-	if strings.Contains(ct, "application/json") {
+	if strings.Contains(ct, "application/json") ||
+	  strings.Contains(ct, "application/jrd+json") {
 		parsed, err := jrd.ParseJRD(content)
 		if err != nil {
 			return nil, err

@@ -11,19 +11,19 @@ import (
 // JRD is a JSON Resource Descriptor, specifying properties and related links
 // for a resource.
 type JRD struct {
-	Subject    string
-	Aliases    []string
-	Properties map[string]interface{}
-	Links      []Link
+	Subject    string                 `json:"subject,omitempty"`
+	Aliases    []string               `json:"aliases,omitempty"`
+	Properties map[string]interface{} `json:"properties,omitempty"`
+	Links      []Link                 `json:"links,omitempty"`
 }
 
 // Link is a link to a related resource.
 type Link struct {
-	Rel        string
-	Type       string
-	Href       string
-	Titles     map[string]string
-	Properties map[string]interface{}
+	Rel        string                 `json:"rel,omitempty"`
+	Type       string                 `json:"type,omitempty"`
+	Href       string                 `json:"href,omitempty"`
+	Titles     map[string]string      `json:"titles,omitempty"`
+	Properties map[string]interface{} `json:"properties,omitempty"`
 }
 
 // ParseJRD parses the JRD using json.Unmarshal.
