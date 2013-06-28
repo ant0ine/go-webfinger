@@ -122,6 +122,11 @@ type Client struct {
 	// HTTP client used to perform WebFinger lookups.
 	client *http.Client
 
+	// WebFistServer is the host used for issuing WebFist queries when standard
+	// WebFinger lookup fails.  If set to the empty string, queries will not fall
+	// back to the WebFist protocol.
+	WebFistServer string
+
 	// Allow the use of HTTP endoints for lookups.  The WebFinger spec requires
 	// all lookups be performed over HTTPS, so this should only ever be enabled
 	// for development.
@@ -140,13 +145,17 @@ func Lookup(identifier string, rels []string) (*jrd.JRD, error) {
 	return DefaultClient.Lookup(identifier, rels)
 }
 
-// NewClient returns a new WebFinger client.  If a nil http.Client is provied,
-// http.DefaultClient will be used.
+// NewClient returns a new WebFinger Client.  If a nil http.Client is provied,
+// http.DefaultClient will be used.  New Clients will use the default WebFist
+// host if WebFinger lookup fails.
 func NewClient(httpClient *http.Client) *Client {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
-	return &Client{client: httpClient}
+	return &Client{
+		client: httpClient,
+		WebFistServer: webFistDefaultServer,
+	}
 }
 
 // Lookup returns the JRD for the specified identifier.  If provided, only the
@@ -162,7 +171,17 @@ func (c *Client) Lookup(identifier string, rels []string) (*jrd.JRD, error) {
 
 	resourceJRD, err := c.fetchJRD(resource.JRDURL("", rels))
 	if err != nil {
-		return nil, err
+		log.Print(err)
+
+		// Fallback to WebFist protocol
+		if c.WebFistServer != "" {
+			log.Print("Falling back to WebFist protocol")
+			resourceJRD, err = c.webfistLookup(resource)
+		}
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return resourceJRD, nil
