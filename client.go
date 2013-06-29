@@ -22,9 +22,7 @@
 //  func main() {
 //          email := os.Args[1]
 //
-//          client := webfinger.Client{
-//                  EnableLegacyAPISupport: true,
-//          }
+//          client := webfinger.NewClient(nil)
 //
 //          resource, err := webfinger.MakeResource(email)
 //          if err != nil {
@@ -45,7 +43,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ant0ine/go-webfinger/jrd"
-	"github.com/ant0ine/go-webfinger/xrd"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -94,9 +91,17 @@ func (self *Resource) JRDURL(rels []string) *url.URL {
 
 // A Client is a WebFinger client.
 type Client struct {
-	// EnableLegacyAPISupport specifies if the client should fall back to the legacy
-	// WebFinger protocol (specified through draft-02).
-	EnableLegacyAPISupport bool
+	// HTTP client used to perform WebFinger lookups.
+	client *http.Client
+}
+
+// NewClient returns a new WebFinger client.  If a nil http.Client is provied,
+// http.DefaultClient will be used.
+func NewClient(httpClient *http.Client) *Client {
+	if httpClient == nil {
+		httpClient = http.DefaultClient
+	}
+	return &Client{client: httpClient}
 }
 
 // GetJRDPart returns the JRD for the specified resource, with the ability to
@@ -107,27 +112,7 @@ func (self *Client) GetJRDPart(resource *Resource, rels []string) (*jrd.JRD, err
 
 	resourceJRD, err := self.fetchJRD(resource.JRDURL(rels))
 	if err != nil {
-		// Try the original WebFinger API
-		if self.EnableLegacyAPISupport == true {
-			log.Print(err)
-			log.Print("Fallback to the original WebFinger spec")
-			resourceJRD, err = self.LegacyGetJRD(resource)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			return nil, err
-		}
-	}
-
-	// verify the subject
-	if resourceJRD.Subject != resource.AsURIString() {
-		return nil, errors.New(
-			fmt.Sprintf(
-				"JRD Subject does not match the resource: %s",
-				resource.AsURIString(),
-			),
-		)
+		return nil, err
 	}
 
 	return resourceJRD, nil
@@ -135,8 +120,6 @@ func (self *Client) GetJRDPart(resource *Resource, rels []string) (*jrd.JRD, err
 
 // GetJRD returns the JRD data for this resource.
 // It follows redirect, and retries with http if https is not available.
-// If the response payload is in XRD, this method parses it
-// and converts it to JRD. (see the xrd and jrd packages)
 func (self *Client) GetJRD(resource *Resource) (*jrd.JRD, error) {
 	return self.GetJRDPart(resource, nil)
 }
@@ -147,13 +130,13 @@ func (self *Client) fetchJRD(jrdURL *url.URL) (*jrd.JRD, error) {
 
 	// Get follows up to 10 redirects
 	log.Printf("GET %s", jrdURL.String())
-	res, err := http.Get(jrdURL.String())
+	res, err := self.client.Get(jrdURL.String())
 	if err != nil {
 		// retry with http instead of https
 		if strings.Contains(err.Error(), "connection refused") {
 			jrdURL.Scheme = "http"
 			log.Printf("GET %s", jrdURL.String())
-			res, err = http.Get(jrdURL.String())
+			res, err = self.client.Get(jrdURL.String())
 			if err != nil {
 				return nil, err
 			}
@@ -173,21 +156,13 @@ func (self *Client) fetchJRD(jrdURL *url.URL) (*jrd.JRD, error) {
 	}
 
 	ct := strings.ToLower(res.Header.Get("content-type"))
-	if strings.Contains(ct, "application/json") {
+	if strings.Contains(ct, "application/jrd+json") ||
+		strings.Contains(ct, "application/json") {
 		parsed, err := jrd.ParseJRD(content)
 		if err != nil {
 			return nil, err
 		}
 		return parsed, nil
-
-	} else if strings.Contains(ct, "application/xrd+xml") ||
-		strings.Contains(ct, "application/xml") ||
-		strings.Contains(ct, "text/xml") {
-		parsed, err := xrd.ParseXRD(content)
-		if err != nil {
-			return nil, err
-		}
-		return parsed.ConvertToJRD(), nil
 	}
 
 	return nil, errors.New(fmt.Sprintf("invalid content-type: %s", ct))
