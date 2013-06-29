@@ -167,6 +167,13 @@ func (c *Client) Lookup(identifier string, rels []string) (*jrd.JRD, error) {
 		return nil, err
 	}
 
+	return c.LookupResource(resource, rels)
+}
+
+// LookupResource returns the JRD for the specified Resource.  If provided,
+// only the specified rel values will be requested, though WebFinger servers
+// are not obligated to respect that request.
+func (c *Client) LookupResource(resource *Resource, rels []string) (*jrd.JRD, error) {
 	log.Printf("Looking up WebFinger data for %s", resource)
 
 	resourceJRD, err := c.fetchJRD(resource.JRDURL("", rels))
