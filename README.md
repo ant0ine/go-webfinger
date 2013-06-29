@@ -55,5 +55,14 @@ Documentation
 
 - [Online Documentation (godoc.org)](http://godoc.org/github.com/ant0ine/go-webfinger)
 
+Author
+------
+- [Antoine Imbert](https://github.com/ant0ine)
+
+Contributors
+------------
+
+- Thanks [Will Norris](https://github.com/willnorris) for the major update to support draft-14, and the GAE compat!
+
 
 [MIT License](https://github.com/ant0ine/go-webfinger/blob/master/LICENSE)
