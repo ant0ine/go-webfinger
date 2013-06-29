@@ -47,40 +47,68 @@ import (
 	"strings"
 )
 
-// Resource represents a WebFinger resource.
-type Resource struct {
-	Local  string
-	Domain string
-}
+// Resource is a resource for which a WebFinger query can be issued.
+type Resource url.URL
 
-// MakeResource constructs a WebFinger resource for the provided email string.
-func MakeResource(email string) (*Resource, error) {
-	// TODO validate address, see http://www.ietf.org/rfc/rfc2822.txt
-	// TODO accept an email address URI
-	// TODO support mailto: http:  <= rework that
-	parts := strings.SplitN(email, "@", 2)
-	if len(parts) < 2 {
-		return nil, errors.New("not a valid email")
+// Parse parses rawurl into a WebFinger Resource.  The rawurl should be an
+// absolute URL, or an email-like identifier (e.g. "bob@example.com").
+func Parse(rawurl string) (*Resource, error) {
+	u, err := url.Parse(rawurl)
+	if err != nil {
+		return nil, err
 	}
-	return &Resource{
-		Local:  parts[0],
-		Domain: parts[1],
-	}, nil
+
+	// if parsed URL has no scheme but is email-like, treat it as an acct: URL.
+	if u.Scheme == "" {
+		parts := strings.SplitN(rawurl, "@", 2)
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("URL must be absolute, or an email address: %v", rawurl)
+		}
+		return Parse("acct:" + rawurl)
+	}
+
+	r := Resource(*u)
+	return &r, nil
 }
 
-// AsURIString returns the resource as an URI string (eg: acct:user@domain).
-func (self *Resource) AsURIString() string {
-	return fmt.Sprintf("acct:%s@%s", self.Local, self.Domain)
+// WebFingerHost returns the default host for issuing WebFinger queries for
+// this resource.  For Resource URLs with a host component, that value is used.
+// For URLs that do not have a host component, the host is determined by other
+// mains if possible (for example, the domain in the addr-spec of a mailto
+// URL).  If the host cannot be determined from the URL, this value will be an
+// empty string.
+func (r *Resource) WebFingerHost() string {
+	if r.Host != "" {
+		return r.Host
+	} else if r.Scheme == "acct" || r.Scheme == "mailto" {
+		parts := strings.SplitN(r.Opaque, "@", 2)
+		if len(parts) == 2 {
+			return parts[1]
+		}
+	}
+	return ""
 }
 
-// JRDURL returns the WebFinger URL that points to the JRD data for this resource.
-func (self *Resource) JRDURL(rels []string) *url.URL {
+// String reassembles the Resource into a valid URL string.
+func (r *Resource) String() string {
+	u := url.URL(*r)
+	return u.String()
+}
+
+// JRDURL returns the WebFinger query URL at the specified host for this
+// resource.  If host is an empty string, the default host for the resource
+// will be used, as returned from WebFingerHost().
+func (r *Resource) JRDURL(host string, rels []string) *url.URL {
+	if host == "" {
+		host = r.WebFingerHost()
+	}
+
 	return &url.URL{
 		Scheme: "https",
-		Host:   self.Domain,
+		Host:   host,
 		Path:   "/.well-known/webfinger",
 		RawQuery: url.Values{
-			"resource": []string{self.AsURIString()},
+			"resource": []string{r.String()},
 			"rel":      rels,
 		}.Encode(),
 	}
@@ -90,35 +118,77 @@ func (self *Resource) JRDURL(rels []string) *url.URL {
 type Client struct {
 	// HTTP client used to perform WebFinger lookups.
 	client *http.Client
+
+	// WebFistServer is the host used for issuing WebFist queries when standard
+	// WebFinger lookup fails.  If set to the empty string, queries will not fall
+	// back to the WebFist protocol.
+	WebFistServer string
+
+	// Allow the use of HTTP endoints for lookups.  The WebFinger spec requires
+	// all lookups be performed over HTTPS, so this should only ever be enabled
+	// for development.
+	AllowHTTP bool
 }
 
-// NewClient returns a new WebFinger client.  If a nil http.Client is provied,
-// http.DefaultClient will be used.
+// DefaultClient is the default Client and is used by Lookup.
+var DefaultClient = &Client{
+	client:        http.DefaultClient,
+}
+
+// Lookup returns the JRD for the specified identifier.
+//
+// Lookup is a wrapper around DefaultClient.Lookup.
+func Lookup(identifier string, rels []string) (*jrd.JRD, error) {
+	return DefaultClient.Lookup(identifier, rels)
+}
+
+// NewClient returns a new WebFinger Client.  If a nil http.Client is provied,
+// http.DefaultClient will be used.  New Clients will use the default WebFist
+// host if WebFinger lookup fails.
 func NewClient(httpClient *http.Client) *Client {
 	if httpClient == nil {
 		httpClient = http.DefaultClient
 	}
-	return &Client{client: httpClient}
+	return &Client{
+		client: httpClient,
+		WebFistServer: webFistDefaultServer,
+	}
 }
 
-// GetJRDPart returns the JRD for the specified resource, with the ability to
-// specify which "rel" links to include.
-func (self *Client) GetJRDPart(resource *Resource, rels []string) (*jrd.JRD, error) {
-
-	log.Printf("Trying to get WebFinger JRD data for: %s", resource.AsURIString())
-
-	resourceJRD, err := self.fetchJRD(resource.JRDURL(rels))
+// Lookup returns the JRD for the specified identifier.  If provided, only the
+// specified rel values will be requested, though WebFinger servers are not
+// obligated to respect that request.
+func (c *Client) Lookup(identifier string, rels []string) (*jrd.JRD, error) {
+	resource, err := Parse(identifier)
 	if err != nil {
 		return nil, err
 	}
 
-	return resourceJRD, nil
+	return c.LookupResource(resource, rels)
 }
 
-// GetJRD returns the JRD data for this resource.
-// It follows redirect, and retries with http if https is not available.
-func (self *Client) GetJRD(resource *Resource) (*jrd.JRD, error) {
-	return self.GetJRDPart(resource, nil)
+// LookupResource returns the JRD for the specified Resource.  If provided,
+// only the specified rel values will be requested, though WebFinger servers
+// are not obligated to respect that request.
+func (c *Client) LookupResource(resource *Resource, rels []string) (*jrd.JRD, error) {
+	log.Printf("Looking up WebFinger data for %s", resource)
+
+	resourceJRD, err := c.fetchJRD(resource.JRDURL("", rels))
+	if err != nil {
+		log.Print(err)
+
+		// Fallback to WebFist protocol
+		if c.WebFistServer != "" {
+			log.Print("Falling back to WebFist protocol")
+			resourceJRD, err = c.webfistLookup(resource)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return resourceJRD, nil
 }
 
 func (self *Client) fetchJRD(jrdURL *url.URL) (*jrd.JRD, error) {
@@ -129,8 +199,12 @@ func (self *Client) fetchJRD(jrdURL *url.URL) (*jrd.JRD, error) {
 	log.Printf("GET %s", jrdURL.String())
 	res, err := self.client.Get(jrdURL.String())
 	if err != nil {
-		// retry with http instead of https
-		if strings.Contains(err.Error(), "connection refused") {
+		log.Printf("%s", err)
+		errString := strings.ToLower(err.Error())
+		// For some crazy reason, App Engine returns a "ssl_certificate_error" when
+		// unable to connect to an HTTPS URL, so we check for that as well here.
+		if (strings.Contains(errString, "connection refused") ||
+			strings.Contains(errString, "ssl_certificate_error")) && self.AllowHTTP {
 			jrdURL.Scheme = "http"
 			log.Printf("GET %s", jrdURL.String())
 			res, err = self.client.Get(jrdURL.String())

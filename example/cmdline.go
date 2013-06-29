@@ -10,13 +10,9 @@ func main() {
 	email := os.Args[1]
 
 	client := webfinger.NewClient(nil)
+	client.AllowHTTP = true
 
-	resource, err := webfinger.MakeResource(email)
-	if err != nil {
-		panic(err)
-	}
-
-	jrd, err := client.GetJRD(resource)
+	jrd, err := client.Lookup(email, nil)
 	if err != nil {
 		fmt.Println(err)
 		return
