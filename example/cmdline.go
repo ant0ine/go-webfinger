@@ -9,9 +9,7 @@ import (
 func main() {
 	email := os.Args[1]
 
-	client := webfinger.Client{
-		EnableLegacyAPISupport: true,
-	}
+	client := webfinger.NewClient(nil)
 
 	resource, err := webfinger.MakeResource(email)
 	if err != nil {
