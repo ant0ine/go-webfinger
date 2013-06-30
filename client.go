@@ -133,6 +133,7 @@ type Client struct {
 // DefaultClient is the default Client and is used by Lookup.
 var DefaultClient = &Client{
 	client:        http.DefaultClient,
+	WebFistServer: webFistDefaultServer,
 }
 
 // Lookup returns the JRD for the specified identifier.
@@ -150,7 +151,7 @@ func NewClient(httpClient *http.Client) *Client {
 		httpClient = http.DefaultClient
 	}
 	return &Client{
-		client: httpClient,
+		client:        httpClient,
 		WebFistServer: webFistDefaultServer,
 	}
 }
