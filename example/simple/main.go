@@ -1,3 +1,4 @@
+// Minimal example, used in the README
 package main
 
 import (
