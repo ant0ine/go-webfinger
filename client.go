@@ -200,7 +200,6 @@ func (self *Client) fetchJRD(jrdURL *url.URL) (*jrd.JRD, error) {
 	log.Printf("GET %s", jrdURL.String())
 	res, err := self.client.Get(jrdURL.String())
 	if err != nil {
-		log.Printf("%s", err)
 		errString := strings.ToLower(err.Error())
 		// For some crazy reason, App Engine returns a "ssl_certificate_error" when
 		// unable to connect to an HTTPS URL, so we check for that as well here.
