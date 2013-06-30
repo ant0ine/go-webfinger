@@ -4,6 +4,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"github.com/ant0ine/go-webfinger"
@@ -52,6 +53,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Printf("JRD: %+v", jrd)
+	bytes, err := json.MarshalIndent(jrd, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%s\n", bytes)
+
 	os.Exit(0)
 }
