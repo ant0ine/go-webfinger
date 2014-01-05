@@ -66,3 +66,5 @@ Contributors
 
 
 [MIT License](https://github.com/ant0ine/go-webfinger/blob/master/LICENSE)
+
+[![Analytics](https://ga-beacon.appspot.com/UA-309210-4/go-webfinger/readme)](https://github.com/igrigorik/ga-beacon)
