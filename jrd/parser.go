@@ -37,8 +37,8 @@ func ParseJRD(blob []byte) (*JRD, error) {
 }
 
 // GetLinkByRel returns the first *Link with the specified rel value.
-func (self *JRD) GetLinkByRel(rel string) *Link {
-	for _, link := range self.Links {
+func (jrd *JRD) GetLinkByRel(rel string) *Link {
+	for _, link := range jrd.Links {
 		if link.Rel == rel {
 			return &link
 		}
@@ -48,18 +48,18 @@ func (self *JRD) GetLinkByRel(rel string) *Link {
 
 // GetProperty Returns the property value as a string.
 // Per spec a property value can be null, empty string is returned in this case.
-func (self *JRD) GetProperty(uri string) string {
-	if self.Properties[uri] == nil {
+func (jrd *JRD) GetProperty(uri string) string {
+	if jrd.Properties[uri] == nil {
 		return ""
 	}
-	return self.Properties[uri].(string)
+	return jrd.Properties[uri].(string)
 }
 
 // GetProperty Returns the property value as a string.
 // Per spec a property value can be null, empty string is returned in this case.
-func (self *Link) GetProperty(uri string) string {
-	if self.Properties[uri] == nil {
+func (link *Link) GetProperty(uri string) string {
+	if link.Properties[uri] == nil {
 		return ""
 	}
-	return self.Properties[uri].(string)
+	return link.Properties[uri].(string)
 }

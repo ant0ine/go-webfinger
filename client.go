@@ -39,12 +39,13 @@ package webfinger
 import (
 	"errors"
 	"fmt"
-	"github.com/ant0ine/go-webfinger/jrd"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/ant0ine/go-webfinger/jrd"
 )
 
 // Resource is a resource for which a WebFinger query can be issued.
@@ -192,22 +193,22 @@ func (c *Client) LookupResource(resource *Resource, rels []string) (*jrd.JRD, er
 	return resourceJRD, nil
 }
 
-func (self *Client) fetchJRD(jrdURL *url.URL) (*jrd.JRD, error) {
+func (c *Client) fetchJRD(jrdURL *url.URL) (*jrd.JRD, error) {
 	// TODO verify signature if not https
 	// TODO extract http cache info
 
 	// Get follows up to 10 redirects
 	log.Printf("GET %s", jrdURL.String())
-	res, err := self.client.Get(jrdURL.String())
+	res, err := c.client.Get(jrdURL.String())
 	if err != nil {
 		errString := strings.ToLower(err.Error())
 		// For some crazy reason, App Engine returns a "ssl_certificate_error" when
 		// unable to connect to an HTTPS URL, so we check for that as well here.
 		if (strings.Contains(errString, "connection refused") ||
-			strings.Contains(errString, "ssl_certificate_error")) && self.AllowHTTP {
+			strings.Contains(errString, "ssl_certificate_error")) && c.AllowHTTP {
 			jrdURL.Scheme = "http"
 			log.Printf("GET %s", jrdURL.String())
-			res, err = self.client.Get(jrdURL.String())
+			res, err = c.client.Get(jrdURL.String())
 			if err != nil {
 				return nil, err
 			}
@@ -236,5 +237,5 @@ func (self *Client) fetchJRD(jrdURL *url.URL) (*jrd.JRD, error) {
 		return parsed, nil
 	}
 
-	return nil, errors.New(fmt.Sprintf("invalid content-type: %s", ct))
+	return nil, fmt.Errorf("invalid content-type: %s", ct)
 }

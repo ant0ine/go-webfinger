@@ -71,12 +71,12 @@ func TestResource_Parse(t *testing.T) {
 func TestResource_Parse_error(t *testing.T) {
 	_, err := Parse("example.com")
 	if err == nil {
-		t.Errorf("Expected parse error", err)
+		t.Error("Expected parse error")
 	}
 
 	_, err = Parse("%")
 	if err == nil {
-		t.Errorf("Expected parse error", err)
+		t.Error("Expected parse error")
 	}
 }
 
@@ -170,7 +170,7 @@ func TestLookup_parseError(t *testing.T) {
 	// use default client here, just to make sure that gets tested
 	_, err := Lookup("bob", nil)
 	if err == nil {
-		t.Errorf("Expected parse error", err)
+		t.Error("Expected parse error")
 	}
 }
 
@@ -180,6 +180,6 @@ func TestLookup_404(t *testing.T) {
 
 	_, err := client.Lookup("bob@"+testHost, nil)
 	if err == nil {
-		t.Errorf("Expected error", err)
+		t.Error("Expected error")
 	}
 }

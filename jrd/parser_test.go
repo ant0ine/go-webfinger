@@ -50,22 +50,22 @@ func TestParseJRD(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if obj.Subject != "http://blog.example.com/article/id/314" {
-		t.Error()
+	if got, want := obj.Subject, "http://blog.example.com/article/id/314"; got != want {
+		t.Errorf("JRD.Subject is %q, want %q", got, want)
 	}
-	if obj.GetProperty("http://blgx.example.net/ns/version") != "1.3" {
-		t.Error()
+	if got, want := obj.GetProperty("http://blgx.example.net/ns/version"), "1.3"; got != want {
+		t.Errorf("obj.GetProperty('http://blgx.example.net/ns/version') returned %q, want %q", got, want)
 	}
-	if obj.GetProperty("http://blgx.example.net/ns/ext") != "" {
-		t.Error()
+	if got, want := obj.GetProperty("http://blgx.example.net/ns/ext"), ""; got != want {
+		t.Errorf("obj.GetProperty('http://blgx.example.net/ns/ext') returned %q, want %q", got, want)
 	}
 	if obj.GetLinkByRel("copyright") == nil {
-		t.Error()
+		t.Error("obj.GetLinkByRel('copyright') returned nil, want non-nil value")
 	}
-	if obj.GetLinkByRel("author").Titles["default"] != "About the Author" {
-		t.Error()
+	if got, want := obj.GetLinkByRel("author").Titles["default"], "About the Author"; got != want {
+		t.Errorf("obj.GetLinkByRel('author').Titles['default'] returned %q, want %q", got, want)
 	}
-	if obj.GetLinkByRel("author").GetProperty("http://example.com/role") != "editor" {
-		t.Error()
+	if got, want := obj.GetLinkByRel("author").GetProperty("http://example.com/role"), "editor"; got != want {
+		t.Errorf("obj.GetLinkByRel('author').GetProperty('http://example.com/role') returned %q, want %q", got, want)
 	}
 }
