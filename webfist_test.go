@@ -91,7 +91,7 @@ func TestWebFistLookup_invalidLink(t *testing.T) {
 		fmt.Fprint(w, `{
 			"links": [{
 				"rel": "http://webfist.org/spec/rel",
-				"href": "%"
+				"href": "#"
 			}]
 		}`)
 	})

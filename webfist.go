@@ -10,7 +10,7 @@ import (
 
 const (
 	webFistDefaultServer = "webfist.org"
-	webFistRel = "http://webfist.org/spec/rel"
+	webFistRel           = "http://webfist.org/spec/rel"
 )
 
 func (c *Client) webfistLookup(resource *Resource) (*jrd.JRD, error) {
